@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- include polyfills for custom event, Symbol and Custom Elements -->
+  <script src="https://unpkg.com/babel-polyfill@6.26.0/dist/polyfill.js"></script>
+  <script src="https://unpkg.com/custom-event-polyfill@0.3.0/custom-event-polyfill.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.8.0/document-register-element.js"></script>
+
+  <script src="../build/d3fc-webgl-as.js"></script>
+
+  <script>
+    fcWebglAS.loadApi().then(api => {
+      const getCircles = fcWebglAS.circles().callback(result => {
+        console.log(result);
+      });
+
+      const points = new Float32Array([
+        1.0, 1.0, 0.5, 10.0,
+        -1.0, 1.0, 1.0, 20.0
+      ])
+      getCircles(points, 30.0);
+
+      const shape = new Float32Array([
+        0.0, 1.0,
+        1.0, 0.0, 
+        0.0, -1.0,
+        -1.0, 0.0
+      ]);
+      const getShapes = fcWebglAS.shapes().shape(shape).callback(result => {
+        console.log(result);
+      });
+
+      const spoints = new Float32Array([
+        1.0, 1.0, 10.0,
+        -1.0, 1.0, 20.0
+      ])
+      getShapes(spoints);
+    });
+  </script>
+</head>
+<body>
+</body>
+</html>

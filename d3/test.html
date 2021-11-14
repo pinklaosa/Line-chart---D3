@@ -3,16 +3,9 @@
 <head>
   <script src="https://unpkg.com/d3"></script>
   <script src="https://unpkg.com/d3fc"></script>
-  <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
-  <script src="https://cdn.jsdelivr.net/npm/d3-interpolate@3"></script>
-  <script src="https://cdn.jsdelivr.net/npm/d3-scale-chromatic@3"></script>
-  <script src="https://cdn.jsdelivr.net/npm/d3-zoom@3"></script>
-  <script src="https://cdn.jsdelivr.net/npm/d3-dispatch@3"></script>
-  <script src="https://cdn.jsdelivr.net/npm/d3-ease@3"></script>
-  <script src="https://cdn.jsdelivr.net/npm/d3-selection@3"></script>
-  <script src="https://cdn.jsdelivr.net/npm/d3-timer@3"></script>
-  <script src="https://cdn.jsdelivr.net/npm/d3-transition@3"></script>
-  <script src="https://cdn.jsdelivr.net/npm/d3-drag@3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/debounce.js"></script>
+  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore.js"></script> -->
+
   <script
     src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
@@ -38,7 +31,7 @@
 </head>
 <body>
   <div class="text-center mt-5">
-    <h1>Line Chart</h1>
+    <h1>Line Chart Test</h1>
   </div>
   <div class="container text-center">
     <svg id="chart" width="1000" height="500"></svg>
@@ -64,89 +57,29 @@
   });
 
   const chart = (data) => {
-    //Start
-    const svg = d3.select("#chart");
-    (margin = { top: 10, right: 30, bottom: 30, left: 60 }),
-      (width = +svg.attr("width") - margin.left - margin.right),
-      (height = +svg.attr("height") - margin.top - margin.bottom);
-
-    const x = d3
-      .scaleTime()
-      .nice()
-      .domain(d3.extent(data[0].values, (d) => d.date))
-      .range([margin.left, width + 30]);
-
-    const y = d3
-      .scaleLinear()
-      .domain([
+    const xExtent = fc.extentDate().accessors(data[0].values, (d) => d.date);
+    const yExtent = fc
+      .extentLinear()
+      .accessors([
         d3.min(data, (d) => d3.min(d.values, (v) => v.vSensor)),
         d3.max(data, (d) => d3.max(d.values, (v) => v.vSensor)),
-      ])
-      .nice()
-      .range([height - margin.bottom, margin.top]);
+      ]);
+    
+    const lineSeries = fc
+      .seriesWebglLine()
+      .mainValue(data => data.vSensor)
+      .crossValue(data => data.date);
+    
+    const chart = fc
+      .chartCartesian(d3.scaleTime(), d3.scaleLinear())
+      .yOrient("left")
+      .yDomain(yExtent(data))
+      .xDomain(xExtent(data))
+      .svgPlotArea(lineSeries);
 
-    const color = d3.scaleOrdinal(d3.schemeCategory10);
+      d3.select("#chart-element")
+      .datum(data)
+      .call(chart);
 
-    const xAxis = svg
-      .append("g")
-      .attr("class", "axis--x")
-      .attr("transform", `translate(0,${height - margin.bottom})`)
-      .call(d3.axisBottom(x));
-
-    const yAxis = svg
-      .append("g")
-      .attr("class", "axis--y")
-      .attr("transform", `translate(${margin.left},0)`)
-      .call(d3.axisLeft(y).tickSize(-width + margin.right));
-
-    const defs = svg
-      .append("defs")
-      .append("clipPath")
-      .attr("id", "clip")
-      .append("rect")
-      .attr("x", margin.left)
-      .attr("width", width - margin.right)
-      .attr("height", height);
-
-    const curve = d3.curveLinear;
-    const line = d3
-      .line()
-      .curve(curve)
-      .x((data) => x(data.date))
-      .y((data) => y(data.vSensor));
-
-    const g = svg
-      .append("g")
-      .attr("class", "path")
-      .attr("clip-path", "url(#clip)");
-
-    const lines = g
-      .selectAll("lines")
-      .data(data)
-      .enter()
-      .append("path")
-      .attr("fill", "none")
-      .attr("class", "line")
-      .attr("stroke", (d) => color(d))
-      .attr("d", (data) => line(data.values));
-
-    const extent = [
-      [margin.left, margin.top],
-      [width - margin.right, height - margin.top],
-    ];
-
-    const zoom = d3
-      .zoom()
-      .scaleExtent([1, 10])
-      .translateExtent(extent)
-      .extent(extent)
-      .on("zoom", (event) => {
-        const xz = event.transform.rescaleX(x);
-        const zoomLine = line.x((data) => xz(data.date));
-        svg.selectAll(".line").attr("d", (data) => zoomLine(data.values));
-        svg.select(".axis--x").call(d3.axisBottom(xz));
-      });
-
-    svg.call(zoom);
   };
 </script>
