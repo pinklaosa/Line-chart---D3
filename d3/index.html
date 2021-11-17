@@ -26,6 +26,7 @@
 
     .axis--y path {
       display: none;
+      color: rgba(0, 0, 0, 0.171);
     }
   </style>
 </head>
@@ -39,15 +40,15 @@
 </body>
 
 <script>
-  const parseDate = d3.timeParse("%Y-%m-%d %H:%M:%S");
+  const parseDate = d3.timeParse("%Y-%m");
 
-  const loaddata = d3.csv("data/NORMAL_DATA.csv").then((d) => {
-    const data = d.columns.slice(18).map((sensor) => {
+  const loaddata = d3.csv("data/data-extant.csv").then((d) => {
+    const data = d.columns.slice(1).map((sensor) => {
       return {
         col: sensor,
         values: d.map((v) => {
           return {
-            date: parseDate(v.TimeStamp),
+            date: parseDate(v.Date),
             vSensor: +v[sensor],
           };
         }),
@@ -57,6 +58,7 @@
   });
 
   const chart = (data) => {
+    console.log(data);
     //Start
     const svg = d3.select("#chart");
     (margin = { top: 10, right: 60, bottom: 30, left: 30 }),
@@ -68,6 +70,8 @@
       .nice()
       .domain(d3.extent(data[0].values, (d) => d.date))
       .range([margin.left, width - 30]);
+    
+    
 
     const y = d3
       .scaleLinear()
@@ -101,12 +105,15 @@
       .attr("width", width - margin.right)
       .attr("height", height);
 
+    const brush = d3
+      .brushX()
+      .extent([
+        [margin.left, margin.top],
+        [width - 30, height - margin.bottom],
+      ])
+      .on("start brush end", brushed);
+
     const curve = d3.curveLinear;
-    const line = d3
-      .line()
-      .curve(curve)
-      .x((data) => x(data.date))
-      .y((data) => y(data.vSensor));
 
     const g = svg
       .append("g")
@@ -133,11 +140,15 @@
       .attr("x", width + 15)
       .attr("y", (d, i) => margin.top + 10 + i * 25)
       .style("fill", (d) => color(d))
-      .text(function (data) {
-        return data.col;
-      })
+      .text((data) => data.col)
       .attr("text-anchor", "left")
       .style("alignment-baseline", "middle");
+
+    const line = d3
+      .line()
+      .curve(curve)
+      .x((data) => x(data.date))
+      .y((data) => y(data.vSensor));
 
     const lines = g
       .selectAll("lines")
@@ -166,6 +177,17 @@
         svg.select(".axis--x").call(d3.axisBottom(xz));
       });
 
+    svg.append("g").attr("class", "brush").call(brush);
     svg.call(zoom);
+
+    function brushed({ selection }) {
+      if (selection == null) {
+        lines.attr("stroke", (data) => color(data));
+      } else {
+        const [x0, x1] = selection.map(x.invert);
+        console.log("Start : " + x0 + " __ End : " + x1);
+        lines.attr("stroke", "rgba(0, 0, 0, 0.171)");
+      }
+    }
   };
 </script>
