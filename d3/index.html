@@ -3,7 +3,6 @@
 <head>
   <script src="https://unpkg.com/d3"></script>
   <script src="https://unpkg.com/d3fc"></script>
-  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/debounce.js"></script>
   <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore.js"></script> -->
 
   <script
@@ -37,6 +36,18 @@
   <div class="container text-center">
     <svg id="chart" width="1000" height="500"></svg>
   </div>
+  <div class="container">
+    <div class="row">
+      <div class="col-2">
+      </div>
+      <div class="col-1">
+        <p>Date : </p>
+      </div>
+      <div class="col">
+        <p></p>
+      </div>
+    </div>
+  </div>
 </body>
 
 <script>
@@ -58,20 +69,19 @@
   });
 
   const chart = (data) => {
-    console.log(data);
     //Start
     const svg = d3.select("#chart");
     (margin = { top: 10, right: 60, bottom: 30, left: 30 }),
       (width = +svg.attr("width") - margin.left - margin.right),
       (height = +svg.attr("height") - margin.top - margin.bottom);
 
+    //console.log(typeof(data[0].values[0].date));
+
     const x = d3
       .scaleTime()
       .nice()
       .domain(d3.extent(data[0].values, (d) => d.date))
       .range([margin.left, width - 30]);
-    
-    
 
     const y = d3
       .scaleLinear()
@@ -177,15 +187,27 @@
         svg.select(".axis--x").call(d3.axisBottom(xz));
       });
 
+    //svg.call(zoom);
     svg.append("g").attr("class", "brush").call(brush);
-    svg.call(zoom);
 
     function brushed({ selection }) {
       if (selection == null) {
         lines.attr("stroke", (data) => color(data));
       } else {
         const [x0, x1] = selection.map(x.invert);
-        console.log("Start : " + x0 + " __ End : " + x1);
+        //console.log("x0 : " + x0 + "| x1 : " + x1);
+        //console.log(x0.constructor.name);
+        const brushData = data.map(({ col, values }) => {
+          return {
+            col,
+            values: values.filter(
+              ({ date }) =>
+                date.getTime() >= x0.getTime() && date.getTime() <= x1.getTime()
+            ),
+          };
+        });
+        console.log(brushData);
+
         lines.attr("stroke", "rgba(0, 0, 0, 0.171)");
       }
     }
