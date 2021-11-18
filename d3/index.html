@@ -27,30 +27,50 @@
       display: none;
       color: rgba(0, 0, 0, 0.171);
     }
+
+    .table-p {
+      padding: 0px 150px;
+    }
   </style>
 </head>
-<body>
-  <div class="text-center mt-5">
+<body class="py-5">
+  <div class="text-center">
     <h1>Line Chart</h1>
   </div>
   <div class="container text-center">
     <svg id="chart" width="1000" height="500"></svg>
   </div>
   <div class="container">
-    <div class="row">
-      <div class="col-2">
+    <div class="row px-5">
+      <div class="col-1"></div>
+      <div class="col-1 text-end">
+        <p>Date :</p>
       </div>
-      <div class="col-1">
-        <p>Date : </p>
+      <div class="col-3 text-center">
+        <p id="date_start"></p>
       </div>
-      <div class="col">
-        <p></p>
+      <div class="col-1 text-center">
+        <p>-</p>
+      </div>
+      <div class="col-3 text-center">
+        <p id="date_end"></p>
       </div>
     </div>
+  </div>
+  <div class="container mt-4">
+    <table class="table table-bordered">
+      <thead>
+        <tr id="col">
+          <th>#</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 </body>
 
 <script>
+  //const parseDate = d3.timeParse("%Y-%m-%d %H:%M:%S");
   const parseDate = d3.timeParse("%Y-%m");
 
   const loaddata = d3.csv("data/data-extant.csv").then((d) => {
@@ -189,11 +209,36 @@
 
     //svg.call(zoom);
     svg.append("g").attr("class", "brush").call(brush);
+    d3.select("table").style("visibility", "hidden");
+
+    const formatDate = (datetime) =>
+      datetime.getDate() +
+      "-" +
+      (datetime.getMonth() + 1) +
+      "-" +
+      datetime.getFullYear() +
+      "  " +
+      datetime.getHours() +
+      ":" +
+      datetime.getMinutes() +
+      ":" +
+      datetime.getSeconds();
+
+    const hideTable = () => {
+      d3.select("table").style("visibility", "hidden");
+    };
+    const showTable = () => {
+      d3.select("table").style("visibility", "visible");
+    };
 
     function brushed({ selection }) {
       if (selection == null) {
         lines.attr("stroke", (data) => color(data));
+        hideTable();
+        d3.select("#date_start").text("");
+        d3.select("#date_end").text("");
       } else {
+        showTable();
         const [x0, x1] = selection.map(x.invert);
         //console.log("x0 : " + x0 + "| x1 : " + x1);
         //console.log(x0.constructor.name);
@@ -206,7 +251,17 @@
             ),
           };
         });
-        console.log(brushData);
+        d3.select("#date_start").text(formatDate(x0));
+        d3.select("#date_end").text(formatDate(x1));
+        if (brushData.length > 0) {
+        }
+        
+        d3.select("#col")
+          .data(brushData)
+          .enter()
+          .append("th")
+          .attr("class", "col-data")
+          .text((d) => d.col);
 
         lines.attr("stroke", "rgba(0, 0, 0, 0.171)");
       }
