@@ -16,7 +16,6 @@
     integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
     crossorigin="anonymous"
   />
-
   <title>Line</title>
   <style>
     .axis--y line {
@@ -31,13 +30,37 @@
     .table-p {
       padding: 0px 150px;
     }
+
+    .tool-box {
+      padding: 10px;
+    }
+
+    line {
+      transition: 0.5s;
+    }
   </style>
 </head>
 <body class="py-5">
   <div class="text-center">
     <h1>Line Chart</h1>
   </div>
-  <div class="container text-center">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-9 tool-box">
+        <div class="form-check form-switch">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            role="switch"
+            id="brush_open"
+            value="open"
+          />
+          <label class="form-check-label" for="brush_open"> Brush</label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="container text-center mt-3">
     <svg id="chart" width="1000" height="500"></svg>
   </div>
   <div class="container">
@@ -57,21 +80,34 @@
       </div>
     </div>
   </div>
-  <div class="container mt-4">
-    <table class="table table-bordered">
+  <div class="container mt-4" id="table">
+    <!-- <table class="table table-bordered">
       <thead>
         <tr id="col">
           <th>#</th>
         </tr>
       </thead>
       <tbody></tbody>
-    </table>
+    </table> -->
   </div>
 </body>
 
 <script>
-  //const parseDate = d3.timeParse("%Y-%m-%d %H:%M:%S");
+  // const parseDate = d3.timeParse("%Y-%m-%d %H:%M:%S");
   const parseDate = d3.timeParse("%Y-%m");
+
+  const formatDate = (datetime) =>
+    datetime.getDate() +
+    "-" +
+    (datetime.getMonth() + 1) +
+    "-" +
+    datetime.getFullYear() +
+    "  " +
+    datetime.getHours() +
+    ":" +
+    datetime.getMinutes() +
+    ":" +
+    datetime.getSeconds();
 
   const loaddata = d3.csv("data/data-extant.csv").then((d) => {
     const data = d.columns.slice(1).map((sensor) => {
@@ -200,29 +236,29 @@
       .scaleExtent([1, 10])
       .translateExtent(extent)
       .extent(extent)
-      .on("zoom", (event) => {
-        const xz = event.transform.rescaleX(x);
-        const zoomLine = line.x((data) => xz(data.date));
-        svg.selectAll(".line").attr("d", (data) => zoomLine(data.values));
-        svg.select(".axis--x").call(d3.axisBottom(xz));
-      });
+      .on("zoom", zoomed);
+
+    function zoomed(event) {
+      const xz = event.transform.rescaleX(x);
+      const zoomLine = line.x((data) => xz(data.date));
+      svg.selectAll(".line").attr("d", (data) => zoomLine(data.values));
+      svg.select(".axis--x").call(d3.axisBottom(xz));
+    }
 
     //svg.call(zoom);
-    svg.append("g").attr("class", "brush").call(brush);
-    d3.select("table").style("visibility", "hidden");
 
-    const formatDate = (datetime) =>
-      datetime.getDate() +
-      "-" +
-      (datetime.getMonth() + 1) +
-      "-" +
-      datetime.getFullYear() +
-      "  " +
-      datetime.getHours() +
-      ":" +
-      datetime.getMinutes() +
-      ":" +
-      datetime.getSeconds();
+    d3.select("#brush_open").on("change", () => {
+      if (d3.select("#brush_open").property("checked")) {
+        if (d3.selectAll(".brush").empty()) {
+          const gBrush = svg.append("g").attr("class", "brush").call(brush);
+        }
+      } else {
+        d3.selectAll(".brush").remove();
+        lines.attr("stroke", (data) => color(data));
+        d3.select("#date_start").text("");
+        d3.select("#date_end").text("");
+      }
+    });
 
     const hideTable = () => {
       d3.select("table").style("visibility", "hidden");
@@ -234,7 +270,7 @@
     function brushed({ selection }) {
       if (selection == null) {
         lines.attr("stroke", (data) => color(data));
-        hideTable();
+        d3.selectAll("table").remove();
         d3.select("#date_start").text("");
         d3.select("#date_end").text("");
       } else {
@@ -253,18 +289,35 @@
         });
         d3.select("#date_start").text(formatDate(x0));
         d3.select("#date_end").text(formatDate(x1));
-        if (brushData.length > 0) {
-        }
-        
-        d3.select("#col")
-          .data(brushData)
-          .enter()
-          .append("th")
-          .attr("class", "col-data")
-          .text((d) => d.col);
-
         lines.attr("stroke", "rgba(0, 0, 0, 0.171)");
+        updateTable(brushData);
       }
     }
+
+    const updateTable = (brushData) => {
+      d3.selectAll("table").remove();
+      const table = d3
+        .select("#table")
+        .append("table")
+        .attr("class", "table table-bordered");
+      const thead = table.append("thead");
+      const tr = thead.append("tr").attr("id", "col");
+      tr.selectAll("th")
+        .data(brushData)
+        .enter()
+        .append("th")
+        .text((d) => d.col);
+
+      const tbody = table.append("tbody").data(brushData);
+      const trb = tbody
+        .append("tr")
+        .selectAll("td")
+        .data((d) => d.values);
+      trb.exit().remove();
+      trb
+        .enter()
+        .append("td")
+        .text((d) => d.vSensor);
+    };
   };
 </script>
